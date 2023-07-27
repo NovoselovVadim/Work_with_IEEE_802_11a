@@ -5,7 +5,7 @@ use ieee.std_logic_arith.all;
 entity Multiplier is
     Generic (W_A : natural := 16;
         W_B : natural := 12;
-        DV_D   : natural := 5);
+        DV_D   : natural := 4);
     Port ( clk : in std_logic;
         dv_in : in  std_logic;
         a_i  : in  std_logic_vector(W_A - 1 downto 0);
@@ -26,7 +26,7 @@ architecture Behavioral of Multiplier is
     : std_logic_vector(W_B - 1 downto 0) := (others => '0');
     signal mult_ii, mult_qq, mult_iq, mult_qi, mult_ii_d, mult_iq_d
     : std_logic_vector (W_A+W_B-1 downto 0) := (others => '0');
-    signal diff_ii_qq , add_iq_qi, diff_ii_qq_d, add_iq_qi_d
+    signal diff_ii_qq , add_iq_qi
     : std_logic_vector (W_A+W_B-1 downto 0) := (others => '0');
 
 begin
@@ -47,19 +47,17 @@ begin
             mult_ii_d  <= mult_ii;
             mult_qq    <= signed(a_q_dd) * signed(b_q_dd);
             diff_ii_qq     <= signed(mult_ii_d) - signed(mult_qq);
-            diff_ii_qq_d   <= diff_ii_qq;
 
             mult_iq    <= signed(a_i_d) * signed(b_q_d);
             mult_iq_d  <= mult_iq;
             mult_qi    <= signed(a_q_dd) * signed(b_i_dd);
             add_iq_qi      <= signed(mult_iq_d) + signed(mult_qi);
-            add_iq_qi_d    <= add_iq_qi;
         end if;
     end process;
 
     dv_out <= dv_out_d(0);
 
-    dout_i <= diff_ii_qq_d;
-    dout_q <= add_iq_qi_d;
+    dout_i <= diff_ii_qq;
+    dout_q <= add_iq_qi;
 
 end Behavioral;

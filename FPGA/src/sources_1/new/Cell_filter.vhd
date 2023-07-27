@@ -30,7 +30,7 @@ architecture Behavioral of Cell_filter is
     signal next_cell_q_d : std_logic_vector(W_OUT - 1 downto 0) := (others => '0');
 
     -- Components
-    Component Multiplier is
+    Component Multiplier_3dsp is
         Generic (W_A : natural;
             W_B : natural);
         Port ( clk : in std_logic;
@@ -45,7 +45,7 @@ architecture Behavioral of Cell_filter is
     end component;
 begin
 
-    Mult_connect : Multiplier
+    Mult_connect : Multiplier_3dsp
         generic map(W_A => W_IN,
             W_B => W_COEF)
         port map ( clk => clk,
@@ -63,7 +63,9 @@ begin
             if mult_ena = '1' then
                 next_cell_i_d <= signed(prev_cell_i) + signed(mult_i);
                 next_cell_q_d <= signed(prev_cell_q) + signed(mult_q);
-                dv_out        <= '1';
+            end if;
+            if mult_ena = '1' then
+                dv_out <= '1';
             else
                 dv_out <= '0';
             end if;

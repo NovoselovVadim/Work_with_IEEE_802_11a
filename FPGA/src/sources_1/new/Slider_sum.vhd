@@ -19,8 +19,8 @@ architecture Behavioral of Slider_sum is
     --Signals
     signal dv_out_d : std_logic_vector (1 downto 0) := (others => '0');
 
-    signal res  : std_logic_vector(W_OUT - 1 downto 0) := (others => '0');
-    signal diff : std_logic_vector(W_OUT - 1 downto 0) := (others => '0');
+    signal res   : std_logic_vector(W_OUT - 1 downto 0) := (others => '0');
+    signal diff  : std_logic_vector(W_OUT - 1 downto 0) := (others => '0');
 
     -- Arrays
     type tdelay is array (0 to WINDOW - 1) of std_logic_vector(W_IN -1 downto 0);
@@ -36,17 +36,23 @@ begin
                 dv_out_d <= (others => '0');
                 sdelay   <= (others => (others => '0'));
             else
+
                 if enable = '1' then
                     sdelay <= din & sdelay(0 to WINDOW - 2);
-                    diff   <= signed(sxt(din, W_OUT)) - signed(sxt(sdelay(WINDOW - 1), W_OUT));
-                    res    <= signed(res) + signed(diff);
                 end if;
+
                 dv_out_d <= enable & dv_out_d(1);
+                diff     <= signed(sxt(din, W_OUT)) - signed(sxt(sdelay(WINDOW - 1), W_OUT));
+
+                if dv_out_d(1) = '1' then
+                    res      <= signed(res) + signed(diff);
+                end if;
+
             end if;
         end if;
     end process;
 
-    dv_out   <= dv_out_d(0);
-    dout <= res;
+    dv_out <= dv_out_d(0);
+    dout   <= res;
 
 end Behavioral;

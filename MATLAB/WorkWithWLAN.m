@@ -109,16 +109,34 @@ cfgCorr.numCorr = 33;
 
 figure
 plot(abs(rxSigFCFO).^2), grid minor, title("Signal after frequency tuning");
-%%
-fpga = readmatrix('D:\NIR\WIFI\Signals\Norm_cross_from_fpga.dat');
-figure
-plot(fpga/2^11), title("Fpga")
-figure
-matlab = [zeros(16,1); Mn(1:length(fpga)-16)];
-plot(matlab,'*-'), title("Matlab")
-figure
-plot(fpga/2^11 - matlab);
-% clear strt_ind
-% strt = readmatrix('D:\NiR\WiFi\Signals\Start_pckt_from_fpga.dat');
-% strt_ind(:,1) = find(strt)-47;
-% diff = PacketStart(1:length(strt_ind)) - strt_ind;
+%% Test Norm_cross_corr.vhd
+if 0
+    fpga = readmatrix('D:\NIR\WIFI\Signals\Norm_cross_from_fpga.dat');
+    fpga = fpga(17:end)/2^16;
+    matlab = Mn(1:length(fpga));
+    figure
+    plot(fpga), title("Fpga")
+    hold on %figure
+    plot(matlab,'*-r'), title("Matlab")
+    figure
+    plot(abs(fpga - matlab));
+end
+%% Test Detector.vhd
+if 1
+    clear strt_ind
+    strt = readmatrix('D:\NiR\WiFi\Signals\Start_pckt_from_fpga.dat');
+    strt_ind(:,1) = find(strt)-48;
+    diff = PacketStart(1:length(strt_ind)) - strt_ind;
+end
+%% Test AGC.vhd
+if 0
+end
+%% Test CoarseCFOEstimate.vhd
+if 0
+end
+%% Test FineCFOEstimate.vhd
+if 0
+end
+%% Test Receiver.vhd
+if 0
+end

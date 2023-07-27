@@ -14,7 +14,7 @@ architecture Behavioral of TB_accum is
     signal clk        : STD_LOGiC;
     signal clk_period : time := 10 ns;
     -- Accumulator signals
-    signal din_i,din_q : std_logic_vector(W_MULT - 1 downto 0);
+    signal din_i,din_q,r_din_i,r_din_q : std_logic_vector(W_MULT - 1 downto 0);
     signal calc_ready                  : std_logic := '0';
     signal dout_i                      : STD_LOGiC_VECTOR (lengthPartSum - 1 downto 0);
     signal dout_q                      : STD_LOGiC_VECTOR (lengthPartSum - 1 downto 0);

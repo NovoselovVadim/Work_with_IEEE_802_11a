@@ -94,14 +94,10 @@ begin
         if rising_edge(clk) then
             if reset = '1' then
                 coef_count <= (others => '0');
-            else
-                if enable = '1' then
-                    if unsigned(coef_count) = WINDOW-1 then
-                        coef_count <= (others => '0');
-                    else
-                        coef_count <= unsigned(coef_count) + 1;
-                    end if;
-                end if;
+            elsif unsigned(coef_count) = WINDOW-1 then
+                coef_count <= (others => '0');
+            elsif enable = '1' then
+                coef_count <= unsigned(coef_count) + 1;
             end if;
         end if;
     end process;

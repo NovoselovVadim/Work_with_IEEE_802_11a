@@ -3,8 +3,12 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity TB_Norm_cross_corr is
     Generic (W_IN : natural := 16;
-        WINDOW : natural := 16;
-        TB_NUM : natural := 1);
+        W_ENERG     : natural := 32;
+        WINDOW      : natural := 16;
+        W_ENERG_SQR : natural := 64;
+        W_DIV_OUT   : natural := 80;
+        W_OUT       : natural := 16;
+        TB_NUM      : natural := 1);
 --    Port ( );
 end TB_Norm_cross_corr;
 
@@ -24,30 +28,35 @@ architecture Behavioral of TB_Norm_cross_corr is
     end procedure;
 
     -- Write signals
-    signal sign : std_logic := '1';
+    signal sign : std_logic := '0';
     -- Read-Write signal
     signal r_dv  : std_logic := '0';
     signal w_dv  : std_logic := '0';
     signal reset : std_logic := '0';
 
     -- Norm_cross_corr signals
-    signal din_i            : STD_LOGiC_VECTOR (W_IN - 1 downto 0)  := (others => '0');
-    signal din_q            : STD_LOGiC_VECTOR (W_IN - 1 downto 0)  := (others => '0');
-    signal coef_energ       : std_logic_vector(2*W_IN - 1 downto 0) := "00000000110011111111000011001100";
+    signal din_i            : STD_LOGiC_VECTOR (W_IN - 1 downto 0)   := (others => '0');
+    signal din_q            : STD_LOGiC_VECTOR (W_IN - 1 downto 0)   := (others => '0');
+    signal coef_energ       : std_logic_vector(W_ENERG - 1 downto 0) := "00000000110011111111111111111111";
     signal dout             : STD_LOGiC_VECTOR (W_IN - 1 downto 0);
     signal enable, r_enable : STD_LOGiC := '0';
 
     -- Components
     Component Norm_cross_corr is
         generic (W_IN : natural;
-            WINDOW : natural);
+            W_ENERG     : natural;
+            WINDOW      : natural;
+            W_ENERG_SQR : natural;
+            W_DIV_OUT   : natural;
+            W_OUT       : natural);
         port ( clk : in std_logic;
+            reset      : in  std_logic;
             enable     : in  std_logic;
-            coef_energ : in  std_logic_vector (2*W_IN - 1 downto 0);
+            coef_energ : in  std_logic_vector (W_ENERG - 1 downto 0);
             din_i      : in  std_logic_vector (W_IN - 1 downto 0);
             din_q      : in  std_logic_vector (W_IN - 1 downto 0);
             dv_out     : out std_logic;
-            dout       : out std_logic_vector (W_IN - 1 downto 0));
+            dout       : out std_logic_vector (W_OUT - 1 downto 0));
     end component;
 
     Component ReadFile
@@ -78,8 +87,13 @@ begin
     -- Components connecting
     Norm_cross_corr_connect : Norm_cross_corr
         generic map(W_IN => W_IN,
-            WINDOW => WINDOW)
+            W_ENERG     => W_ENERG,
+            WINDOW      => WINDOW,
+            W_ENERG_SQR => W_ENERG_SQR,
+            W_DIV_OUT   => W_DIV_OUT,
+            W_OUT       => W_OUT)
         port map ( clk => clk,
+            reset      => reset,
             enable     => r_dv,
             coef_energ => coef_energ,
             din_i      => din_i,
@@ -106,7 +120,7 @@ begin
             clk => clk);
 
     Write_output_data : WriteFile
-        generic map( numOfBits => W_IN,
+        generic map( numOfBits => W_OUT,
             file_name => "D:\NiR\WiFi\Signals\Norm_cross_from_fpga.dat" )
         port map( clk => clk,
             dv     => w_dv,
@@ -123,16 +137,26 @@ begin
         end loop;
     end process;
 
+    reset_gen : process begin
+        wait_clk;
+        reset <= '0';
+        wait_clk;
+        reset <= '1';
+        wait_clk;
+        reset <= '0';
+        wait;
+    end process;
+
     enable_gen : process begin
         case(TB_NUM) is
             when 1 =>
                 wait_clk(2);
---                loop
-                enable <= '1';
---                    wait_clk(1);
---                    enable <= '0';
---                    wait_clk(6);
---                end loop;
+                loop
+                    enable <= '1';
+                    wait_clk(1);
+                    enable <= '0';
+                    wait_clk(6);
+                end loop;
             when 2 =>
                 wait_clk(2);
                 loop

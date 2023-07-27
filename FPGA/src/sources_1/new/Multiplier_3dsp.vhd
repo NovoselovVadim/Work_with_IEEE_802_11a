@@ -12,8 +12,8 @@ entity Multiplier_3dsp is
         a_q    : in  std_logic_vector(W_A-1 downto 0);
         b_i    : in  std_logic_vector(W_B-1 downto 0);
         b_q    : in  std_logic_vector(W_B-1 downto 0);
-        dout_i : out std_logic_vector(W_A+W_B downto 0);
-        dout_q : out std_logic_vector(W_A+W_B downto 0);
+        dout_i : out std_logic_vector(W_A+W_B-1 downto 0);
+        dout_q : out std_logic_vector(W_A+W_B-1 downto 0);
         dv_out : out std_logic);
 end Multiplier_3dsp;
 
@@ -67,7 +67,7 @@ begin
 
     dv_out <= dv_out_d(0);
 
-    dout_i <= std_logic_vector(dout_i_int);
-    dout_q <= std_logic_vector(dout_q_int);
+    dout_i <= std_logic_vector(resize(dout_i_int,W_A+W_B));
+    dout_q <= std_logic_vector(resize(dout_q_int,W_A+W_B));
 
 end Behavioral;

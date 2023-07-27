@@ -4,7 +4,7 @@ use ieee.std_logic_arith.all;
 
 entity Absolute_square is
     Generic (W_IN : natural := 16;
-        DV_D : natural := 5);
+        DV_D : natural := 4);
     Port ( clk : in std_logic;
         dv_in  : in  std_logic;
         din_i  : in  std_logic_vector (W_IN - 1 downto 0);
@@ -20,7 +20,7 @@ architecture Behavioral of Absolute_square is
     : std_logic_vector(W_IN - 1 downto 0) := (others => '0');
     signal mult_ii, mult_ii_d, mult_qq
     : std_logic_vector (2*W_IN - 1 downto 0) := (others => '0');
-    signal add_ii_qq, add_ii_qq_d
+    signal add_ii_qq
     : std_logic_vector (2*W_IN - 1 downto 0) := (others => '0');
 
 begin
@@ -36,11 +36,10 @@ begin
             mult_ii_d   <= mult_ii;
             mult_qq     <= signed(din_q_dd) * signed(din_q_dd);
             add_ii_qq   <= signed(mult_ii_d) + signed(mult_qq);
-            add_ii_qq_d <= add_ii_qq;
         end if;
     end process;
 
     dv_out <= dv_out_d(0);
-    dout   <= add_ii_qq_d;
+    dout   <= add_ii_qq;
 
 end Behavioral;

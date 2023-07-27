@@ -5,9 +5,13 @@ use ieee.math_real.all;
 
 entity Norm_cross_corr is
     Generic (W_IN : natural := 16;
-        W_ENERG : natural := 32;
-        WINDOW  : natural := 16);
+        W_ENERG     : natural := 32;
+        WINDOW      : natural := 16;
+        W_ENERG_SQR : natural := 64;
+        W_DIV_OUT   : natural := 80;
+        W_OUT       : natural := 16);
     Port ( clk : in std_logic;
+        reset      : in  std_logic;
         enable     : in  std_logic;
         coef_energ : in  std_logic_vector (W_ENERG - 1 downto 0);
         din_i      : in  std_logic_vector (W_IN - 1 downto 0);
@@ -18,28 +22,27 @@ end Norm_cross_corr;
 
 architecture Behavioral of Norm_cross_corr is
     -- Signals
-    signal dv_corr, dv_corr_energ : std_logic                               := '0';
-    signal dv_mult_energ_d        : std_logic_vector (2 downto 0)           := (others => '0');
-    signal corr_i, corr_q         : std_logic_vector (W_ENERG - 1 downto 0) := (others => '0');
-    signal corr_energ             : std_logic_vector (2*W_ENERG - 1 downto 0) := (others => '0');
+    signal dv_corr, dv_corr_energ : std_logic                                   := '0';
+    signal corr_i, corr_q         : std_logic_vector (W_ENERG - 1 downto 0)     := (others => '0');
+    signal corr_energ             : std_logic_vector (W_ENERG_SQR - 1 downto 0) := (others => '0');
 
     signal dv_din_sqr : std_logic                               := '0';
     signal din_sqr    : std_logic_vector (W_ENERG - 1 downto 0) := (others => '0');
 
     signal dv_sum      : std_logic                               := '0';
-    signal sum_reset   : std_logic                               := '0';
     signal din_energ   : std_logic_vector (W_ENERG + 3 downto 0) := (others => '0');
     signal din_energ_x : std_logic_vector (W_ENERG - 1 downto 0) := (others => '0');
 
-    signal dv_mult_energ : std_logic;
-    signal mult_energ    : std_logic_vector(2*W_ENERG - 1 downto 0) := (others => '0');
+    signal dv_mult_energ   : std_logic;
+    signal dv_mult_energ_d : std_logic_vector (3 downto 0)              := (others => '0');
+    signal mult_energ      : std_logic_vector(W_ENERG_SQR - 1 downto 0) := (others => '0');
 
---    signal divisor_tready, dividend_tready : std_logic                              := '1';
-    signal norm_corr  : std_logic_vector (5*W_IN - 1 downto 0) := (others => '0');
-    signal dv_divider : std_logic;
+    signal divisor_tready, dividend_tready : std_logic                                 := '1'; --
+    signal norm_corr                       : std_logic_vector (W_DIV_OUT - 1 downto 0) := (others => '0');
+    signal dv_divider                      : std_logic;
 
     -- Arrays
-    type mult_delay is array (2 downto 0) of std_logic_vector(2*W_ENERG -1 downto 0);
+    type mult_delay is array (3 downto 0) of std_logic_vector(W_ENERG_SQR -1 downto 0);
     signal mult_energ_d : mult_delay := (others => (others => '0'));
 
     -- Components
@@ -79,14 +82,14 @@ architecture Behavioral of Norm_cross_corr is
 
     Component div_gen_0 is
         PORT (aclk : IN STD_LOGIC;
-            s_axis_divisor_tvalid : IN STD_LOGIC;
---            s_axis_divisor_tready  : OUT STD_LOGIC;
-            s_axis_divisor_tdata   : IN STD_LOGIC_VECTOR(2*W_ENERG - 1 DOWNTO 0);
-            s_axis_dividend_tvalid : IN STD_LOGIC;
---            s_axis_dividend_tready : OUT STD_LOGIC;
-            s_axis_dividend_tdata : IN  STD_LOGIC_VECTOR(2*W_ENERG - 1 DOWNTO 0);
-            m_axis_dout_tvalid    : OUT STD_LOGIC;
-            m_axis_dout_tdata     : OUT STD_LOGIC_VECTOR(5*W_IN - 1 DOWNTO 0));
+            s_axis_divisor_tvalid  : IN  STD_LOGIC;
+            s_axis_divisor_tready  : OUT STD_LOGIC; --
+            s_axis_divisor_tdata   : IN  STD_LOGIC_VECTOR(W_ENERG_SQR - 1 DOWNTO 0);
+            s_axis_dividend_tvalid : IN  STD_LOGIC;
+            s_axis_dividend_tready : OUT STD_LOGIC; --
+            s_axis_dividend_tdata  : IN  STD_LOGIC_VECTOR(W_ENERG_SQR - 1 DOWNTO 0);
+            m_axis_dout_tvalid     : OUT STD_LOGIC;
+            m_axis_dout_tdata      : OUT STD_LOGIC_VECTOR(W_DIV_OUT - 1 DOWNTO 0));
     end component;
 
 begin
@@ -126,19 +129,16 @@ begin
             W_IN   => W_ENERG,
             WINDOW => WINDOW)
         port map (clk => clk,
-            reset  => sum_reset,
+            reset  => reset,
             enable => dv_din_sqr,
             dv_out => dv_sum,
             din    => din_sqr,
             dout   => din_energ);
 
-    din_energ_x  <= sxt(din_energ, W_ENERG);
+    din_energ_x <= sxt(din_energ, W_ENERG);
 
     process(clk) begin
         if rising_edge(clk) then
-
-            mult_energ_d  <= mult_energ & mult_energ_d(2 downto 1);
-            dv_mult_energ_d <= dv_mult_energ & dv_mult_energ_d(2 downto 1);
 
             if dv_sum = '1' then
                 mult_energ    <= signed(din_energ_x) * signed(coef_energ);
@@ -147,21 +147,24 @@ begin
                 dv_mult_energ <= '0';
             end if;
 
+            mult_energ_d    <= mult_energ & mult_energ_d(3 downto 1);
+            dv_mult_energ_d <= dv_mult_energ & dv_mult_energ_d(3 downto 1);
+
         end if;
     end process ;
 
     Divider_connect : div_gen_0
         PORT MAP (aclk => clk,
-            s_axis_divisor_tvalid => dv_mult_energ_d(0),
---            s_axis_divisor_tready  => divisor_tready,
+            s_axis_divisor_tvalid  => dv_mult_energ_d(0),
+            s_axis_divisor_tready  => divisor_tready,--
             s_axis_divisor_tdata   => std_logic_vector(unsigned(mult_energ_d(0))),
             s_axis_dividend_tvalid => dv_corr_energ,
---            s_axis_dividend_tready => dividend_tready,
-            s_axis_dividend_tdata => std_logic_vector(unsigned(corr_energ)),
-            m_axis_dout_tvalid    => dv_divider,
-            m_axis_dout_tdata     => norm_corr);
+            s_axis_dividend_tready => dividend_tready,--
+            s_axis_dividend_tdata  => std_logic_vector(unsigned(corr_energ)),
+            m_axis_dout_tvalid     => dv_divider,
+            m_axis_dout_tdata      => norm_corr);
 
     dv_out <= dv_divider;
-    dout   <= ext(norm_corr, W_IN);
+    dout   <= ext(norm_corr, W_OUT);
 
 end Behavioral;
